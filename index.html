@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>開催日カレンダー</title>
+<meta name="theme-color" content="#FDF3E7">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="開催日カレンダー">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Parisienne&family=Sacramento&family=Playfair+Display:ital,wght@1,400&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F1EE; --surface:#FFFFFF; --ink:#2A221D; --muted:#7A716A; --line:#E3DDD6;
+  --primary:#3B2B22; --on-primary:#FFFFFF; --stage:#E9E5E0; --focus:#2E9BE6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B1815; --surface:#26211D; --ink:#EFE9E3; --muted:#A99F96; --line:#3A332E;
+    --primary:#EFE9E3; --on-primary:#231C17; --stage:#14110F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B1815; --surface:#26211D; --ink:#EFE9E3; --muted:#A99F96; --line:#3A332E;
+  --primary:#EFE9E3; --on-primary:#231C17; --stage:#14110F;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  font-weight:500;line-height:1.6;-webkit-text-size-adjust:100%}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 48px;display:grid;gap:20px}
+@media (min-width:860px){.wrap{grid-template-columns:minmax(0,420px) minmax(0,1fr);align-items:start;padding-top:36px}
+  .stage-col{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}}
+h1{font-size:1.35rem;margin:0 0 2px;font-weight:700;letter-spacing:.02em}
+.lead{margin:0;color:var(--muted);font-size:.92rem}
+.stage{background:var(--stage);border-radius:18px;padding:14px;display:flex;justify-content:center}
+canvas{display:block;width:100%;max-width:360px;height:auto;border-radius:10px;cursor:pointer;
+  box-shadow:0 1px 2px rgba(40,25,15,.12),0 8px 24px rgba(40,25,15,.10);touch-action:manipulation}
+.panel{display:grid;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.monthbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.monthbar output{font-size:1.25rem;font-weight:700}
+.iconbtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:1.1rem;cursor:pointer}
+.brushes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.brush{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:12px;padding:10px 6px;font:inherit;cursor:pointer;text-align:center;line-height:1.3}
+.brush .dots{display:flex;justify-content:center;gap:3px;margin-bottom:4px}
+.brush .dot{width:16px;height:16px;border-radius:50%;border:3px solid currentColor}
+.brush small{display:block;color:var(--muted);font-size:.72rem}
+.brush[aria-checked="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.hint{margin:10px 0 0;font-size:.82rem;color:var(--muted)}
+.summary{margin:0;font-size:.9rem;white-space:pre-line}
+.summary.empty{color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:999px;padding:14px 22px;font:inherit;font-weight:700;cursor:pointer;min-height:48px}
+.btn.primary{background:var(--primary);color:var(--on-primary);flex:1 1 200px;font-size:1.02rem}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
+details summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"＋";color:var(--muted)}
+details[open] summary::after{content:"－"}
+.fields{display:grid;gap:14px;margin-top:14px}
+label.f{display:grid;gap:6px;font-size:.85rem;color:var(--muted)}
+input[type=text],textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;font-size:16px}
+textarea{resize:vertical;min-height:72px;line-height:1.5}
+.slot{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:end}
+input[type=color]{width:44px;height:44px;border:1px solid var(--line);border-radius:10px;padding:3px;background:var(--bg)}
+.check{display:flex;gap:10px;align-items:center;font-size:.9rem}
+.check input{width:20px;height:20px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--primary);color:var(--on-primary);padding:10px 18px;border-radius:999px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+.sheet{position:fixed;inset:0;background:rgba(20,14,10,.6);display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px));z-index:10}
+.sheet[hidden]{display:none}
+.sheet-inner{background:var(--surface);border-radius:18px;padding:16px;max-width:380px;width:100%;max-height:100%;overflow:auto;display:grid;gap:12px;text-align:center}
+.sheet-inner img{width:100%;height:auto;border-radius:10px;-webkit-touch-callout:default}
+.sheet-inner p{margin:0;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.install{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:grid;gap:8px;font-size:.9rem}
+.install[hidden]{display:none}
+.install p{margin:0}
+.install .row{justify-content:flex-end}
+.install .btn{min-height:40px;padding:8px 16px}
+.links{display:flex;flex-wrap:wrap;gap:0 14px;margin:6px 0 -6px -6px}
+.linkbtn{background:none;border:0;padding:8px 6px;min-height:36px;font:inherit;font-size:.85rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;display:inline-flex;align-items:center}
+.linkbtn:hover{color:var(--ink)}
+.quiet details+details{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+.quiet summary{font-size:.95rem}
+.state{font-weight:500;color:var(--muted);font-size:.78rem;margin-left:6px}
+.minor{font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;padding:0 6px}
+.minor p{flex-basis:100%;margin:0;font-size:.75rem}
+.sheet-inner a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.bgrow{display:flex;gap:8px;flex-wrap:wrap}
+.bgrow .btn{flex:1 1 140px}
+.bgthumb{width:44px;height:78px;border-radius:6px;object-fit:cover;border:1px solid var(--line);flex:0 0 auto}
+input[type=range]{width:100%;accent-color:var(--primary)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:859px){
+  body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  .brushes{position:fixed;left:0;right:0;bottom:0;z-index:5;margin:0;
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));
+    background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(40,25,15,.08)}
+  .brush{padding:8px 4px}
+  .toast{bottom:calc(104px + env(safe-area-inset-bottom,0px))}
+  .hint{margin-top:12px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="install" id="install" hidden role="note">
+    <p><strong>ホーム画面に追加すると、アプリのように使えます。</strong></p>
+    <p id="installHow"></p>
+    <div class="row"><button class="btn ghost" id="installLater">閉じる</button><button class="btn primary" id="installNow" hidden style="flex:0 0 auto">追加する</button></div>
+  </div>
+  <div class="stage-col">
+    <div style="margin-bottom:14px">
+      <h1>開催日カレンダー</h1>
+      <p class="lead">カレンダーの日付をタップして印をつけ、画像を保存します。</p>
+    </div>
+    <div class="stage"><canvas id="cv" width="1080" height="1920" aria-label="カレンダーのプレビュー。日付をタップすると開催日の印がつきます。"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <section class="card" aria-label="月と印">
+      <div class="monthbar">
+        <button class="iconbtn" id="prev" aria-label="前の月">‹</button>
+        <output id="monthLabel" aria-live="polite"></output>
+        <button class="iconbtn" id="next" aria-label="次の月">›</button>
+      </div>
+      <div class="brushes" role="radiogroup" aria-label="つける印">
+        <button class="brush" role="radio" data-brush="am"><span class="dots"><span class="dot" data-c="am"></span></span><span data-name="am"></span><small data-time="am"></small></button>
+        <button class="brush" role="radio" data-brush="pm"><span class="dots"><span class="dot" data-c="pm"></span></span><span data-name="pm"></span><small data-time="pm"></small></button>
+        <button class="brush" role="radio" data-brush="both"><span class="dots"><span class="dot" data-c="am"></span><span class="dot" data-c="pm"></span></span>両方<small>午前と午後</small></button>
+      </div>
+      <p class="hint">選んだ印で日付をタップ。もう一度タップすると消えます。</p>
+    </section>
+
+    <section class="card" aria-label="開催日の一覧">
+      <p class="summary" id="summary"></p>
+      <div class="links">
+        <button class="linkbtn" id="copy">一覧をコピー</button>
+        <button class="linkbtn" id="clear">この月の印を消す</button>
+      </div>
+    </section>
+
+    <div class="row">
+      <button class="btn primary" id="save">画像を保存</button>
+    </div>
+
+    <section class="card quiet">
+      <details id="bgDetails">
+        <summary><span>背景の画像 <small class="state" id="bgState"></small></span></summary>
+        <div class="fields">
+          <p class="hint" style="margin:0">カレンダーはそのままで、背景だけを好きな写真にできます。</p>
+          <div class="bgrow" style="align-items:center">
+            <img id="bgThumb" class="bgthumb" alt="" hidden>
+            <label class="btn ghost" for="bgFile" style="text-align:center;display:flex;align-items:center;justify-content:center">写真を選ぶ</label>
+            <input type="file" id="bgFile" accept="image/*" class="visually-hidden">
+            <button class="btn ghost" id="bgReset" hidden>元の背景に戻す</button>
+          </div>
+          <div class="fields" id="bgControls" hidden style="margin-top:0">
+            <label class="f">写真のうすさ（上げるほど文字が読みやすくなります）
+              <input type="range" id="bgVeil" min="0" max="0.9" step="0.05">
+            </label>
+            <label class="f">写真の位置
+              <input type="range" id="bgPan" min="-1" max="1" step="0.02">
+            </label>
+          </div>
+        </div>
+      </details>
+      <details id="settings">
+        <summary>文字・時間・書体の設定</summary>
+        <div class="fields">
+          <label class="f">ひとこと（この月だけ・2行まで）
+            <textarea id="msg" rows="2" maxlength="60"></textarea>
+          </label>
+          <div class="slot">
+            <input type="color" id="amColor" aria-label="午前の色">
+            <label class="f">午前の時間<input type="text" id="amTime"></label>
+          </div>
+          <div class="slot">
+            <input type="color" id="pmColor" aria-label="午後の色">
+            <label class="f">午後の時間<input type="text" id="pmTime"></label>
+          </div>
+          <label class="f">時間の下に添える一言<input type="text" id="openText"></label>
+          <label class="f">注意書き（2行まで）
+            <textarea id="note" rows="2" maxlength="80"></textarea>
+          </label>
+          <label class="check"><input type="checkbox" id="tags"> 丸のそばに am / pm を書く</label>
+          <label class="f">書体
+            <select id="preset">
+              <option value="elegant">すっきり筆記体</option>
+              <option value="soft">やわらか手書き</option>
+            </select>
+          </label>
+        </div>
+      </details>
+    </section>
+
+    <footer class="minor" aria-label="バックアップ">
+      <span>バックアップ</span>
+      <button class="linkbtn" id="bkExport">書き出す</button>
+      <label class="linkbtn" for="bkFile">読み込む</label>
+      <input type="file" id="bkFile" accept="application/json,.json" class="visually-hidden">
+      <p>機種変更のときに使います。背景の写真も含めて移せます。</p>
+    </footer>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-inner">
+    <p id="sheetTitle"><strong>画像を長押しして「写真に保存」</strong></p>
+    <img id="sheetImg" alt="完成したカレンダー画像">
+    <a id="sheetLink" class="btn ghost" download>ファイルとしてダウンロード</a>
+    <button class="btn primary" id="sheetClose">閉じる</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const W=1080,H=1920;
+const BG="#FDF3E7", INK="#4A4644", RED="#C9535F", SUB="#6F6A66";
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const WDJ=["日","月","火","水","木","金","土"];
+const JP='"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif';
+const PRESETS={
+  soft:{big:['','Parisienne'],name:['','Sacramento'],week:['','Sacramento'],digit:['','Parisienne'],year:['','Parisienne'],
+        bigSize:250,nameSize:150,weekSize:54,digitSize:70,yearSize:50},
+  elegant:{big:['italic','"Playfair Display"'],name:['','"Great Vibes"'],week:['','"Great Vibes"'],digit:['','"Great Vibes"'],year:['','"Great Vibes"'],
+        bigSize:250,nameSize:140,weekSize:50,digitSize:70,yearSize:48}
+};
+const fnt=(p,size)=>`${p[0]} ${size}px ${p[1]}, "Brush Script MT", cursive`.trim();
+
+/* ---------- state ---------- */
+const KEY="coffee-calendar-v1";
+const today=new Date();
+let ym={y:today.getFullYear(),m:today.getMonth()+1};
+if(today.getDate()>=15){ym.m++; if(ym.m>12){ym.m=1;ym.y++;}}
+const defaults={
+  settings:{amTime:"10:00〜12:00",pmTime:"13:30〜17:00",amColor:"#2E9BE6",pmColor:"#F2C230",
+    openText:"open",note:"※日時は変更する場合があります。ストーリーの確認をお願いします。",tags:true,preset:"elegant",bgVeil:0.55,bgPan:0},
+  marks:{},msgs:{}
+};
+let store=JSON.parse(JSON.stringify(defaults));
+try{const raw=localStorage.getItem(KEY); if(raw){const s=JSON.parse(raw); store={settings:Object.assign({},defaults.settings,s.settings||{}),marks:s.marks||{},msgs:s.msgs||{}};}}catch(e){}
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
+let brush="am";
+const mkey=()=>`${ym.y}-${String(ym.m).padStart(2,"0")}`;
+const marks=()=>store.marks[mkey()]||(store.marks[mkey()]={});
+const defaultMsg=()=>`${ym.m}月もお待ちしています。\n楽しみましょう。`;
+const msgFor=()=>store.msgs[mkey()]!==undefined?store.msgs[mkey()]:defaultMsg();
+
+/* ---------- Japanese holidays ---------- */
+const holCache={};
+function holidays(y){
+  if(holCache[y])return holCache[y];
+  const base=new Set(), k=(m,d)=>m*100+d;
+  const nthMon=(m,n)=>{const f=new Date(y,m-1,1).getDay();return 1+((8-f)%7)+(n-1)*7;};
+  [[1,1],[2,11],[4,29],[5,3],[5,4],[5,5],[11,3],[11,23]].forEach(([m,d])=>base.add(k(m,d)));
+  if(y>=2020)base.add(k(2,23)); if(y>=2016)base.add(k(8,11));
+  base.add(k(1,nthMon(1,2)));base.add(k(7,nthMon(7,3)));base.add(k(9,nthMon(9,3)));base.add(k(10,nthMon(10,2)));
+  const n=y-1980;
+  base.add(k(3,Math.floor(20.8431+0.242194*n-Math.floor(n/4))));
+  base.add(k(9,Math.floor(23.2488+0.242194*n-Math.floor(n/4))));
+  const all=new Set(base);
+  const key=d=>k(d.getMonth()+1,d.getDate());
+  // 国民の休日（祝日に挟まれた平日）
+  for(let d=new Date(y,0,2);d.getFullYear()===y;d.setDate(d.getDate()+1)){
+    const p=new Date(d);p.setDate(p.getDate()-1);const q=new Date(d);q.setDate(q.getDate()+1);
+    if(!base.has(key(d))&&d.getDay()!==0&&base.has(key(p))&&base.has(key(q)))all.add(key(d));
+  }
+  // 振替休日
+  base.forEach(v=>{const d=new Date(y,Math.floor(v/100)-1,v%100);
+    if(d.getDay()===0){const s=new Date(d);do{s.setDate(s.getDate()+1);}while(all.has(key(s)));if(s.getFullYear()===y)all.add(key(s));}});
+  return holCache[y]=all;
+}
+const isHoliday=(y,m,d)=>holidays(y).has(m*100+d);
+
+/* ---------- drawing ---------- */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function handCircle(x,cx,cy,R,color,seed,lw){
+  const r=rng(seed);
+  const tilt=(r()-.5)*.5, start=-2.2+(r()-.5)*.5, sweep=Math.PI*2+.45+r()*.3;
+  const rx=R*(1.04+r()*.08), ry=R*(.9+r()*.08), wob=r()*6.28, amp=.03+r()*.03;
+  const N=96, pts=[];
+  for(let i=0;i<=N;i++){
+    const t=i/N, a=start+sweep*t, g=1+.13*t*t*t, w=1+amp*Math.sin(3*a+wob);
+    const px=rx*g*w*Math.cos(a), py=ry*g*w*Math.sin(a);
+    pts.push([cx+px*Math.cos(tilt)-py*Math.sin(tilt), cy+px*Math.sin(tilt)+py*Math.cos(tilt)]);
+  }
+  const [ax,ay]=pts[N-3],[bx,by]=pts[N], dx=bx-ax, dy=by-ay, L=Math.hypot(dx,dy)||1;
+  x.save();x.strokeStyle=color;x.lineWidth=lw||R*.085;x.lineCap="round";x.lineJoin="round";
+  x.beginPath();x.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<=N;i++)x.lineTo(pts[i][0],pts[i][1]);
+  x.quadraticCurveTo(bx+dx/L*R*.18,by+dy/L*R*.18,bx+dx/L*R*.28-(by-cy)*.06,by+dy/L*R*.28+(bx-cx)*.06);
+  x.stroke();x.restore();
+}
+function wrapLines(x,text,maxW,maxLines){
+  const out=[];
+  String(text||"").split("\n").forEach(par=>{
+    let line="";
+    for(const ch of par){ if(x.measureText(line+ch).width>maxW&&line){out.push(line);line=ch;} else line+=ch; }
+    out.push(line);
+  });
+  return out.slice(0,maxLines);
+}
+function centerBaseline(x,text,cy){const m=x.measureText(text);return cy+(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2;}
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+let geo=null;
+function render(){
+  const x=ctx, S=store.settings, P=PRESETS[S.preset]||PRESETS.soft, y=ym.y, m=ym.m;
+  x.clearRect(0,0,W,H); x.fillStyle=BG; x.fillRect(0,0,W,H);
+  if(bgImg&&bgImg.complete&&bgImg.naturalWidth){
+    const iw=bgImg.naturalWidth, ih=bgImg.naturalHeight, sc=Math.max(W/iw,H/ih), dw=iw*sc, dh=ih*sc, t=(Number(S.bgPan)+1)/2;
+    x.drawImage(bgImg,(W-dw)*t,(H-dh)*t,dw,dh);
+    x.fillStyle=`rgba(253,243,231,${Number(S.bgVeil)})`; x.fillRect(0,0,W,H);
+  }
+  x.fillStyle=INK; x.textAlign="center"; x.textBaseline="alphabetic";
+  x.font=fnt(P.big,P.bigSize); x.fillText(String(m),540,410);
+  x.font=fnt(P.name,P.nameSize); x.fillText(MONTHS[m-1],540,568);
+  // message
+  x.textAlign="left"; x.fillStyle=SUB; x.font=`500 32px ${JP}`;
+  wrapLines(x,msgFor(),560,2).forEach((l,i)=>x.fillText(l,92,640+i*46));
+  x.textAlign="right"; x.fillStyle=INK; x.font=fnt(P.year,P.yearSize); x.fillText(String(y),992,690);
+  const rule=(yy,w)=>{x.save();x.strokeStyle=INK;x.lineWidth=w;x.beginPath();x.moveTo(80,yy);x.lineTo(1000,yy);x.stroke();x.restore();};
+  rule(716,6);
+  const colW=920/7, cxOf=i=>80+colW*(i+.5);
+  x.textAlign="center"; x.font=fnt(P.week,P.weekSize);
+  WD.forEach((w,i)=>{x.fillStyle=i===0?RED:INK;x.fillText(w,cxOf(i),centerBaseline(x,w,766));});
+  rule(812,3);
+  const first=new Date(y,m-1,1).getDay(), days=new Date(y,m,0).getDate(), rows=Math.ceil((first+days)/7);
+  const top=826, gridH=600, rowH=gridH/rows, dsize=Math.min(P.digitSize,rowH*.64);
+  geo={top,rowH,colW,first,days,rows};
+  x.font=fnt(P.digit,dsize);
+  const cells=[];
+  for(let d=1;d<=days;d++){
+    const idx=first+d-1, r=Math.floor(idx/7), c=idx%7, cx=cxOf(c), cy=top+rowH*(r+.5);
+    x.fillStyle=(c===0||isHoliday(y,m,d))?RED:INK;
+    x.fillText(String(d),cx,centerBaseline(x,String(d),cy));
+    cells.push({d,cx,cy});
+  }
+  const R=Math.min(colW,rowH)*.40, mk=marks();
+  cells.forEach(({d,cx,cy})=>{
+    const v=mk[d]; if(!v)return;
+    const seed=y*10000+m*100+d;
+    if(v==="am"||v==="both")handCircle(x,cx,cy,R,S.amColor,seed);
+    if(v==="pm"||v==="both")handCircle(x,cx+(v==="both"?R*.1:0),cy+(v==="both"?R*.08:0),R*(v==="both"?1.16:1),S.pmColor,seed+7);
+    if(S.tags){x.save();x.fillStyle=SUB;x.textAlign="left";x.font=`500 ${Math.round(R*.6)}px ${JP}`;
+      const tag=v==="both"?"am/pm":v, tw=x.measureText(tag).width;
+      x.fillText(tag,Math.min(cx+R*.3,1040-tw),cy+R*1.38);x.restore();}
+  });
+  // note
+  x.textAlign="left"; x.fillStyle=SUB; x.font=`500 26px ${JP}`;
+  wrapLines(x,S.note,890,2).forEach((l,i)=>x.fillText(l,92,top+gridH+56+i*38));
+  rule(1540,6);
+  // legend
+  x.font=`500 44px ${JP}`; x.fillStyle=INK;
+  [["am",S.amColor,S.amTime],["pm",S.pmColor,S.pmTime]].forEach(([k,col,t],i)=>{
+    const ly=1620+i*78; handCircle(x,138,ly,27,col,k==="am"?11:23,5);
+    x.fillStyle=INK; x.fillText(t,196,centerBaseline(x,t,ly));
+  });
+  if(S.openText){x.fillText(S.openText,196,centerBaseline(x,S.openText,1776));}
+  updateSummary();
+}
+
+/* ---------- fonts ---------- */
+async function loadFonts(){
+  if(!document.fonts||!document.fonts.load)return;
+  const S=store.settings, P=PRESETS[S.preset]||PRESETS.soft;
+  const jpText=[msgFor(),S.note,S.amTime,S.pmTime,S.openText,"am/pm"].join("");
+  try{
+    await Promise.all([
+      document.fonts.load(fnt(P.big,80),"0123456789"),
+      document.fonts.load(fnt(P.name,80),MONTHS.join("")),
+      document.fonts.load(fnt(P.week,80),WD.join("")),
+      document.fonts.load(fnt(P.digit,80),"0123456789"),
+      document.fonts.load(`500 32px "Zen Maru Gothic"`,jpText||"あ")
+    ]);
+  }catch(e){}
+  render();
+}
+
+/* ---------- UI ---------- */
+const $=id=>document.getElementById(id);
+function syncUI(){
+  const S=store.settings;
+  $("monthLabel").value=`${ym.y}年${ym.m}月`; $("monthLabel").textContent=`${ym.y}年${ym.m}月`;
+  $("amTime").value=S.amTime; $("pmTime").value=S.pmTime; $("amColor").value=S.amColor; $("pmColor").value=S.pmColor;
+  $("openText").value=S.openText; $("note").value=S.note; $("tags").checked=!!S.tags; $("preset").value=S.preset;
+  $("msg").value=msgFor();
+  document.querySelectorAll("[data-name=am]").forEach(e=>e.textContent="午前");
+  document.querySelectorAll("[data-name=pm]").forEach(e=>e.textContent="午後");
+  document.querySelectorAll("[data-time=am]").forEach(e=>e.textContent=S.amTime);
+  document.querySelectorAll("[data-time=pm]").forEach(e=>e.textContent=S.pmTime);
+  document.querySelectorAll(".dot").forEach(e=>e.style.color=e.dataset.c==="am"?S.amColor:S.pmColor);
+  document.querySelectorAll(".brush").forEach(b=>b.setAttribute("aria-checked",String(b.dataset.brush===brush)));
+}
+function summaryText(){
+  const mk=marks(), S=store.settings;
+  const ds=Object.keys(mk).map(Number).filter(d=>mk[d]).sort((a,b)=>a-b);
+  return ds.map(d=>{const wd=WDJ[new Date(ym.y,ym.m-1,d).getDay()], v=mk[d];
+    const t=v==="am"?S.amTime:v==="pm"?S.pmTime:`${S.amTime} / ${S.pmTime}`;
+    return `${ym.m}/${d}(${wd}) ${t}`;}).join("\n");
+}
+function updateSummary(){
+  const t=summaryText(), el=$("summary");
+  el.textContent=t||"まだ開催日がありません。カレンダーの日付をタップしてください。";
+  el.classList.toggle("empty",!t);
+}
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),1800);}
+
+cv.addEventListener("click",ev=>{
+  if(!geo)return;
+  const r=cv.getBoundingClientRect(), px=(ev.clientX-r.left)*W/r.width, py=(ev.clientY-r.top)*H/r.height;
+  if(py<geo.top||py>geo.top+geo.rowH*geo.rows||px<80||px>1000)return;
+  const c=Math.floor((px-80)/geo.colW), row=Math.floor((py-geo.top)/geo.rowH), d=row*7+c-geo.first+1;
+  if(d<1||d>geo.days)return;
+  const mk=marks();
+  if(mk[d]===brush)delete mk[d]; else mk[d]=brush;
+  persist(); render();
+});
+document.querySelectorAll(".brush").forEach(b=>b.addEventListener("click",()=>{brush=b.dataset.brush;syncUI();}));
+function shift(n){ym.m+=n;if(ym.m<1){ym.m=12;ym.y--;}if(ym.m>12){ym.m=1;ym.y++;}syncUI();loadFonts();render();}
+$("prev").onclick=()=>shift(-1); $("next").onclick=()=>shift(1);
+$("clear").onclick=()=>{const k=mkey();if(!Object.keys(store.marks[k]||{}).length)return;store.marks[k]={};persist();render();toast("この月の印を消しました");};
+$("copy").onclick=async()=>{
+  const t=summaryText(); if(!t){toast("コピーする開催日がありません");return;}
+  const text=`${ym.m}月の開催日\n${t}`;
+  try{await navigator.clipboard.writeText(text);toast("一覧をコピーしました");}
+  catch(e){const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");toast("一覧をコピーしました");}catch(_){toast("コピーできませんでした");}ta.remove();}
+};
+const bindSetting=(id,key,prop="value")=>$(id).addEventListener("input",()=>{store.settings[key]=$(id)[prop];persist();syncUIQuiet();loadFonts();render();});
+function syncUIQuiet(){const S=store.settings;
+  document.querySelectorAll("[data-time=am]").forEach(e=>e.textContent=S.amTime);
+  document.querySelectorAll("[data-time=pm]").forEach(e=>e.textContent=S.pmTime);
+  document.querySelectorAll(".dot").forEach(e=>e.style.color=e.dataset.c==="am"?S.amColor:S.pmColor);}
+bindSetting("amTime","amTime");bindSetting("pmTime","pmTime");bindSetting("amColor","amColor");bindSetting("pmColor","pmColor");
+bindSetting("openText","openText");bindSetting("note","note");bindSetting("tags","tags","checked");
+$("preset").addEventListener("change",()=>{store.settings.preset=$("preset").value;persist();loadFonts();render();});
+$("msg").addEventListener("input",()=>{store.msgs[mkey()]=$("msg").value;persist();loadFonts();render();});
+
+/* ---------- save ---------- */
+let downloads=null;
+const inClaude=()=>!!(window.claude&&typeof window.claude.use==="function");
+try{ if(inClaude()){ window.claude.use("downloads").then(n=>{downloads=n;}).catch(()=>{}); } }catch(e){}
+const coarse=window.matchMedia&&matchMedia("(pointer:coarse)").matches;
+function showSheet(blob){
+  const url=URL.createObjectURL(blob);
+  $("sheetImg").src=url; $("sheetLink").href=url; $("sheetLink").download=fname();
+  $("sheet").hidden=false; $("sheetClose").focus();
+}
+$("sheetClose").onclick=()=>{$("sheet").hidden=true;};
+const fname=()=>`calendar-${mkey()}.png`;
+const toBlobP=()=>new Promise(r=>cv.toBlob(r,"image/png"));
+function dataUrlToFile(d,name,type){const b=atob(d.split(",")[1]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return new File([u],name,{type});}
+function directDownload(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}
+// スマホでは共有シート（「画像を保存」で写真へ）を、タップと同じ流れの中で開く
+async function tryShare(file){
+  if(!coarse||!navigator.canShare||!navigator.canShare({files:[file]}))return "skip";
+  try{await navigator.share({files:[file]});return "done";}
+  catch(e){return e&&e.name==="AbortError"?"done":"skip";}
+}
+$("save").onclick=async()=>{
+  render();
+  if(downloads){
+    const blob=await toBlobP();
+    try{await downloads.save({filename:fname(),data:blob});toast("保存しました");return;}
+    catch(e){ if(e&&e.code==="declined")return; if(e&&e.code==="rate_limited"){toast("少し待ってからもう一度どうぞ");return;} }
+    showSheet(blob); return;
+  }
+  if(!inClaude()){
+    const r=await tryShare(dataUrlToFile(cv.toDataURL("image/png"),fname(),"image/png"));
+    if(r==="done")return;
+  }
+  const blob=await toBlobP();
+  if(!blob){toast("画像を作れませんでした");return;}
+  if(!coarse&&!inClaude()){directDownload(blob,fname());toast("保存しました");return;}
+  showSheet(blob);
+};
+
+/* ---------- background photo ---------- */
+const BGKEY=KEY+"-bg";
+let bgImg=null;
+function setBg(dataUrl){
+  if(!dataUrl){bgImg=null;syncBgUI();render();return;}
+  const im=new Image(); im.onload=()=>{bgImg=im;syncBgUI();render();}; im.src=dataUrl;
+}
+function syncBgUI(){
+  const on=!!bgImg;
+  $("bgControls").hidden=!on; $("bgReset").hidden=!on; $("bgThumb").hidden=!on;
+  if(on)$("bgThumb").src=bgImg.src;
+  $("bgState").textContent=on?"写真を使用中":"";
+  $("bgVeil").value=store.settings.bgVeil; $("bgPan").value=store.settings.bgPan;
+}
+$("bgFile").addEventListener("change",ev=>{
+  const file=ev.target.files&&ev.target.files[0]; ev.target.value="";
+  if(!file)return;
+  const url=URL.createObjectURL(file), im=new Image();
+  im.onload=()=>{
+    // 縦長画像を覆える大きさに縮小して保存（はみ出し分は位置の調整に使う）
+    const sc=Math.min(1,Math.max(W/im.naturalWidth,H/im.naturalHeight));
+    const c=document.createElement("canvas"); c.width=Math.round(im.naturalWidth*sc); c.height=Math.round(im.naturalHeight*sc);
+    c.getContext("2d").drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(url);
+    const data=c.toDataURL("image/jpeg",0.85);
+    store.settings.bgPan=0; persist();
+    let kept=true; try{localStorage.setItem(BGKEY,data);}catch(e){kept=false;}
+    setBg(data);
+    toast(kept?"背景を差し替えました":"背景を差し替えました（写真が大きいため、次回は元の背景に戻ります）");
+  };
+  im.onerror=()=>{URL.revokeObjectURL(url);toast("この画像は読み込めませんでした。JPEGかPNGを選んでください");};
+  im.src=url;
+});
+$("bgReset").onclick=()=>{try{localStorage.removeItem(BGKEY);}catch(e){} setBg(null); toast("元の背景に戻しました");};
+$("bgVeil").addEventListener("input",()=>{store.settings.bgVeil=Number($("bgVeil").value);persist();render();});
+$("bgPan").addEventListener("input",()=>{store.settings.bgPan=Number($("bgPan").value);persist();render();});
+try{const d=localStorage.getItem(BGKEY); if(d)setBg(d);}catch(e){}
+syncBgUI();
+
+/* ---------- backup ---------- */
+$("bkExport").onclick=async()=>{
+  const d=new Date(), stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  const name=`calendar-backup-${stamp}.json`;
+  const json=JSON.stringify({app:"coffee-calendar",version:1,exportedAt:d.toISOString(),
+    settings:store.settings,marks:store.marks,msgs:store.msgs,bg:bgImg?bgImg.src:null});
+  if(downloads){
+    try{await downloads.save({filename:name,data:json});toast("書き出しました");}
+    catch(e){ if(!(e&&e.code==="declined"))toast("書き出せませんでした"); }
+    return;
+  }
+  if(!inClaude()){
+    const r=await tryShare(new File([json],name,{type:"application/json"}));
+    if(r==="done")return;
+  }
+  directDownload(new Blob([json],{type:"application/json"}),name); toast("書き出しました");
+};
+$("bkFile").addEventListener("change",ev=>{
+  const file=ev.target.files&&ev.target.files[0]; ev.target.value="";
+  if(!file)return;
+  const fr=new FileReader();
+  fr.onload=()=>{
+    let p; try{p=JSON.parse(fr.result);}catch(e){p=null;}
+    if(!p||p.app!=="coffee-calendar"||typeof p.settings!=="object"){toast("このファイルは読み込めません。書き出したバックアップを選んでください");return;}
+    if(!confirm("今のデータを、このバックアップの内容に置き換えます。よろしいですか？"))return;
+    store={settings:Object.assign({},defaults.settings,p.settings),marks:p.marks||{},msgs:p.msgs||{}};
+    persist();
+    if(typeof p.bg==="string"&&p.bg.startsWith("data:image/")){try{localStorage.setItem(BGKEY,p.bg);}catch(e){} setBg(p.bg);}
+    else{try{localStorage.removeItem(BGKEY);}catch(e){} setBg(null);}
+    syncUI(); syncBgUI(); loadFonts(); render(); toast("バックアップを読み込みました");
+  };
+  fr.onerror=()=>toast("ファイルを読めませんでした");
+  fr.readAsText(file);
+});
+
+/* ---------- app install / offline ---------- */
+const standalone=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const INSTKEY=KEY+"-install-dismissed";
+let installDismissed=false; try{installDismissed=localStorage.getItem(INSTKEY)==="1";}catch(e){}
+if(!inClaude()&&!standalone&&!installDismissed&&isIOS){
+  $("installHow").textContent="Safariの共有ボタン（□に↑）から「ホーム画面に追加」を選んでください。※ホーム画面から開いたときと、Safariで開いたときは保存場所が別になります。ホーム画面から使うのがおすすめです。";
+  $("install").hidden=false;
+}
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault(); deferredPrompt=e; if(installDismissed||inClaude())return;
+  $("installHow").textContent="ホーム画面から開くと、電波がなくても使えます。";
+  $("installNow").hidden=false; $("install").hidden=false;
+});
+$("installNow").onclick=async()=>{ if(!deferredPrompt)return; deferredPrompt.prompt(); try{await deferredPrompt.userChoice;}catch(e){} deferredPrompt=null; $("install").hidden=true; };
+$("installLater").onclick=()=>{ $("install").hidden=true; try{localStorage.setItem(INSTKEY,"1");}catch(e){} };
+if(!inClaude()&&"serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+try{ if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{}); }catch(e){}
+
+syncUI(); render(); loadFonts();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(render);
+})();
+</script>
+</body>
+</html>
